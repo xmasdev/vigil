@@ -349,8 +349,8 @@
   "cost": {
     "llm_calls": 33,
     "prompt_tokens": 41489,
-    "completion_tokens": 6307,
-    "seconds": 177.5
+    "completion_tokens": 6279,
+    "seconds": 193.0
   },
   "model": "Qwen3-4B-Q5_K_M.gguf"
 }

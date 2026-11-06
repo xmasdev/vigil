@@ -113,8 +113,18 @@ class TriageWorkflow:
             verdict = "needs_review"
         else:
             verdict = "input_trusted"
+        if verdict == "input_trusted" and self._entry_reads_request(path):
+            verdict = "needs_review"
+            reasoning += f" [downgraded: entry point {path.entry} is an HTTP handler that reads request data]"
         return Judgment(verdict=verdict, attacker_controlled=s.data_source, reasoning=reasoning, evidence=ev,
                         confidence="high" if verdict != "needs_review" else "low", steps=steps, evidence_verified=True)
+
+    def _entry_reads_request(self, path: CallPath) -> bool:
+        """Deterministic sanity check on the LLM's data-source answer."""
+        if path.entry_kind != "http":
+            return False
+        src = self.a.cg.source_of(path.entry, max_lines=200)
+        return bool(re.search(r"\brequest\.(files|form|data|args|values|json|get_data|get_json|body|POST|GET|FILES)\b", src))
 
     # ---------------------------------------------------------------- framework runtime path
     def _anchors(self, spec: VulnSpec, path: CallPath) -> list[str]:

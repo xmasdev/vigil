@@ -36,10 +36,10 @@
       "advisory": "CVE-2024-56326",
       "gold_affected": true,
       "gold_reason": "exploitable",
-      "status": "needs_review",
-      "symbol_hit": true,
+      "status": "trigger_not_met",
+      "symbol_hit": false,
       "evidence_verified": true,
-      "pred_affected": true
+      "pred_affected": false
     },
     {
       "case": "jinja_sandbox_user_template",
@@ -156,7 +156,7 @@
       "advisory": "CVE-2024-22195",
       "gold_affected": true,
       "gold_reason": "exploitable",
-      "status": "needs_review",
+      "status": "exploitable",
       "symbol_hit": true,
       "evidence_verified": true,
       "pred_affected": true
@@ -226,10 +226,10 @@
       "advisory": "CVE-2023-50447",
       "gold_affected": false,
       "gold_reason": "input_trusted",
-      "status": "exploitable",
+      "status": "trigger_not_met",
       "symbol_hit": true,
       "evidence_verified": true,
-      "pred_affected": true
+      "pred_affected": false
     },
     {
       "case": "pillow_imagemath_user",
@@ -266,10 +266,10 @@
       "advisory": "CVE-2023-43804",
       "gold_affected": false,
       "gold_reason": "trigger_not_met",
-      "status": "trigger_not_met",
+      "status": "needs_review",
       "symbol_hit": true,
       "evidence_verified": true,
-      "pred_affected": false
+      "pred_affected": true
     },
     {
       "case": "urllib3_no_redirect",
@@ -334,23 +334,23 @@
   ],
   "metrics": {
     "n": 33,
-    "tp": 11,
-    "fn": 1,
+    "tp": 10,
+    "fn": 2,
     "fp": 4,
     "tn": 17,
-    "recall": 0.917,
-    "precision": 0.733,
+    "recall": 0.833,
+    "precision": 0.714,
     "alert_reduction": 0.81,
-    "accuracy": 0.848,
-    "needs_review_rate": 0.242,
-    "symbol_hit_rate": 1.0,
-    "reason_match": 0.471
+    "accuracy": 0.818,
+    "needs_review_rate": 0.212,
+    "symbol_hit_rate": 0.97,
+    "reason_match": 0.412
   },
   "cost": {
-    "llm_calls": 94,
-    "prompt_tokens": 63272,
-    "completion_tokens": 10836,
-    "seconds": 282.5
+    "llm_calls": 92,
+    "prompt_tokens": 62403,
+    "completion_tokens": 10760,
+    "seconds": 290.1
   },
   "model": "Qwen3-4B-Q5_K_M.gguf"
 }

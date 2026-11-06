@@ -2,8 +2,8 @@
 
 **Reachability-aware dependency vulnerability triage, with a local LLM.**
 
-A dependency scanner tells you *"PyYAML 5.3.1 has a critical CVE."* For a three-dependency
-Flask app it reports **16 advisories**; for Pillow 9.5.0 alone, **54**. Most of them do not
+A dependency scanner tells you *"PyYAML 5.3.1 has a critical CVE."* For the four-dependency demo
+shop it reports **69 advisories** (Pillow 9.5.0 alone has 54). Most of them do not
 affect the application, so teams drown in alerts and stop reading them.
 
 vigil answers the question the developer actually has: **does my code use the vulnerable
@@ -12,15 +12,18 @@ evidence trail (call path, `file:line` citations that are machine-verified) and 
 runs locally on a 6 GB laptop GPU (llama.cpp + Qwen3-4B).
 
 ```
-$ vigil scan benchmarks/cases/yaml_http_full_load
-12 packages resolved, 16 advisories matched
-call graph: 2116 nodes, 2886 edges, 3 entry points, 51% calls resolved
- exploitable      CVE-2020-14343  pyyaml 5.3.1   CRITICAL  app.import_settings → helpers.parse_config → yaml.full_load
- trigger_not_met  CVE-2023-30861  flask 2.0.1    HIGH      app never uses sessions (searches: \bsession\b … no matches)
- not_reachable    CVE-2025-66471  urllib3 1.26.20 HIGH     …
+$ vigil scan examples/demo_shop
+13 packages resolved, 69 advisories matched
+ exploitable   CVE-2020-14343  pyyaml 5.3.1    CRITICAL  app.upload_catalog → imports.import_catalog → yaml.loader.FullLoader
+ exploitable   CVE-2026-112398 pillow 9.5.0    CRITICAL  app.upload_image → images.make_thumbnail → PIL.Image.open
+ needs_review  CVE-2023-30861  flask 2.0.1     HIGH      framework runtime path, app references Flask
+ not_reachable CVE-2023-50447  pillow 9.5.0    HIGH      ImageMath is never used
+ trigger_not_met CVE-2023-32681 requests 2.25.1 MODERATE no proxy credentials passed to requests.post
  …
-1 exploitable, 0 need review, 94% of alerts deprioritised with evidence.
+5 exploitable, 11 need review, 77% of alerts deprioritised with evidence. 155 LLM calls, 586s.
 ```
+
+![Findings view: verdict, vulnerable symbols, attack path, verified evidence](docs/ui-findings.png)
 
 ## Design principle: the LLM only does what code can't
 
@@ -91,10 +94,10 @@ affected and why. Run with `vigil eval`.
 | config | recall (affected caught) | alert reduction | precision | accuracy | needs review | symbol hit | LLM calls | time |
 |---|---|---|---|---|---|---|---|---|
 | scanner (pip-audit-style) | 100% (12/12) | 0% (0/21) | 36% | 36% | 0% | – | 0 | – |
-| reach-diff (no LLM) | 100% (12/12) | 10% (2/21) | 39% | 42% | 82% | 79% | 0 | 42 s |
-| reach-llm (step A only) | 100% (12/12) | 10% (2/21) | 39% | 42% | 94% | 100% | 33 | 178 s |
-| **workflow** (A + structured triage) | **92% (11/12)** | **81% (17/21)** | **73%** | **85%** | 24% | 100% | 94 | 282 s |
-| agent (A + ReAct triage) | 83% (10/12) | 48% (10/21) | 48% | 61% | 30% | 100% | 225 | 537 s |
+| reach-diff (no LLM) | 100% (12/12) | 10% (2/21) | 39% | 42% | 82% | 79% | 0 | 49 s |
+| reach-llm (step A only) | 100% (12/12) | 10% (2/21) | 39% | 42% | 94% | 100% | 33 | 193 s |
+| **workflow** (A + structured triage) | **83% (10/12)** | **81% (17/21)** | **71%** | **82%** | 21% | 97% | 92 | 290 s |
+| agent (A + ReAct triage) | 83% (10/12) | 52% (11/21) | 50% | 64% | 18% | 97% | 209 | 492 s |
 
 **Retrieval** (advisory text → gold vulnerable symbol among the library's public API, n = 11 advisories):
 
@@ -111,12 +114,15 @@ What the numbers say:
   The LLM steps are what turn "maybe" into a decision, which is exactly where generative AI earns its place.
 - **LLM symbol extraction beats fix-diff symbols** (100% vs 79% gold-symbol hit): diffs touch internals,
   tests and refactors; the advisory prose names the public entry points.
-- **Workflow > agent on a 4B model**: +9 pts recall, +33 pts alert reduction, 2.4× fewer LLM calls.
+- **Workflow > agent on a 4B model**: same recall, +29 pts alert reduction, 2.3× fewer LLM calls.
   The agent tends to wander into library internals and declare framework CVEs exploitable.
+- **Variance is real.** With 12 positive pairs one case is 8 pts. Across the last code revisions workflow
+  recall moved 92% → 83% because a single Jinja sandbox case flipped when prompts changed slightly
+  (temperature 0, but a 4B model is prompt-sensitive). Treat differences under ~10 pts as noise.
 - **Hybrid retrieval did not beat dense** on this small set (BM25 drags recall@5 down); kept because BM25 is
   robust for exact identifiers, but the measurement is reported as is.
 
-**How the benchmark drove the design** (workflow recall across iterations: 33% → 67% → 92%):
+**How the benchmark drove the design** (workflow recall across iterations: 33% → 67% → 92% → 83%):
 
 1. 33%: traces showed the triage asking "is the feature used?" with model-chosen regexes like
    `lxml\.html\.clean\.Cleaner\.__call__` that never appear in app code → "no matches" → "not affected".
@@ -127,10 +133,23 @@ What the numbers say:
    Fix: a separate `runtime` confidence tier ranked below resolved calls, and capturing the registry key a
    function is stored under (`FILTERS = {"xmlattr": do_xmlattr}`) as a search anchor.
 
-Remaining errors (workflow): the sandbox `|attr` CVE when **attackers author the templates** (the feature is
-in attacker input, not app code — a known blind spot of usage search); a bundled config file and a constant
-ImageMath expression judged attacker-controlled (false positives, the cheap error); two conservative
-*needs review*.
+4. A realistic demo app (`examples/demo_shop`, 69 advisories) exposed what the benchmark did not:
+   the LLM sometimes *dropped* a symbol the advisory names verbatim ("the FullLoader loader"), turning a
+   critical CVE into a silent "not reachable", and labelled an HTTP upload "input trusted". Fixes:
+   candidates named in the advisory text are always kept (the LLM can add symbols, never remove the
+   obvious ones), and "input trusted" is downgraded when the entry point is an HTTP handler reading
+   `request.*`.
+
+Remaining errors (workflow): the Jinja sandbox CVEs when **attackers author the templates** (the vulnerable
+feature lives in attacker input, not app code — a blind spot of usage search); a bundled config file judged
+attacker-controlled (false positive, the cheap error); three conservative *needs review*.
+
+**Demo app** (`examples/demo_shop`: Flask + PyYAML + requests + Pillow, 69 advisories): 5 exploitable,
+11 need review, 77% deprioritised, in ~10 min on the laptop GPU. Its Pillow image-parser CVEs show a further
+weakness: they trigger on the *file format the attacker chooses* inside `Image.open`, and the 4B model often
+argues "`thumbnail()` does not trigger it". Expect a larger model, or format-aware rules, to be needed there.
+
+![Benchmark tab](docs/ui-bench.png)
 
 Metrics: **recall** = truly-affected alerts that stay flagged (the costly error is missing one);
 **alert reduction** = not-affected alerts suppressed; *needs review* counts as flagged.

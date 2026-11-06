@@ -6,34 +6,14 @@
       "advisory": "CVE-2023-30861",
       "gold_affected": false,
       "gold_reason": "trigger_not_met",
-      "status": "trigger_not_met",
+      "status": "needs_review",
       "symbol_hit": true,
       "evidence_verified": true,
-      "pred_affected": false
+      "pred_affected": true
     },
     {
       "case": "flask_permanent_session",
       "advisory": "CVE-2023-30861",
-      "gold_affected": true,
-      "gold_reason": "exploitable",
-      "status": "trigger_not_met",
-      "symbol_hit": true,
-      "evidence_verified": true,
-      "pred_affected": false
-    },
-    {
-      "case": "jinja_sandbox_user_template",
-      "advisory": "CVE-2019-10906",
-      "gold_affected": true,
-      "gold_reason": "exploitable",
-      "status": "needs_review",
-      "symbol_hit": true,
-      "evidence_verified": false,
-      "pred_affected": true
-    },
-    {
-      "case": "jinja_sandbox_user_template",
-      "advisory": "CVE-2024-56326",
       "gold_affected": true,
       "gold_reason": "exploitable",
       "status": "exploitable",
@@ -43,6 +23,26 @@
     },
     {
       "case": "jinja_sandbox_user_template",
+      "advisory": "CVE-2019-10906",
+      "gold_affected": true,
+      "gold_reason": "exploitable",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": false,
+      "pred_affected": true
+    },
+    {
+      "case": "jinja_sandbox_user_template",
+      "advisory": "CVE-2024-56326",
+      "gold_affected": true,
+      "gold_reason": "exploitable",
+      "status": "trigger_not_met",
+      "symbol_hit": false,
+      "evidence_verified": true,
+      "pred_affected": false
+    },
+    {
+      "case": "jinja_sandbox_user_template",
       "advisory": "CVE-2025-27516",
       "gold_affected": true,
       "gold_reason": "exploitable",
@@ -66,9 +66,9 @@
       "advisory": "CVE-2024-56326",
       "gold_affected": false,
       "gold_reason": "input_trusted",
-      "status": "needs_review",
+      "status": "exploitable",
       "symbol_hit": true,
-      "evidence_verified": false,
+      "evidence_verified": true,
       "pred_affected": true
     },
     {
@@ -76,9 +76,9 @@
       "advisory": "CVE-2025-27516",
       "gold_affected": false,
       "gold_reason": "input_trusted",
-      "status": "needs_review",
+      "status": "exploitable",
       "symbol_hit": true,
-      "evidence_verified": false,
+      "evidence_verified": true,
       "pred_affected": true
     },
     {
@@ -128,7 +128,7 @@
       "gold_reason": "input_trusted",
       "status": "needs_review",
       "symbol_hit": true,
-      "evidence_verified": true,
+      "evidence_verified": false,
       "pred_affected": true
     },
     {
@@ -136,19 +136,19 @@
       "advisory": "CVE-2024-56326",
       "gold_affected": false,
       "gold_reason": "input_trusted",
-      "status": "needs_review",
+      "status": "trigger_not_met",
       "symbol_hit": true,
-      "evidence_verified": false,
-      "pred_affected": true
+      "evidence_verified": true,
+      "pred_affected": false
     },
     {
       "case": "jinja_urlize_comments",
       "advisory": "CVE-2025-27516",
       "gold_affected": false,
       "gold_reason": "input_trusted",
-      "status": "needs_review",
+      "status": "exploitable",
       "symbol_hit": true,
-      "evidence_verified": false,
+      "evidence_verified": true,
       "pred_affected": true
     },
     {
@@ -166,7 +166,7 @@
       "advisory": "CVE-2024-34064",
       "gold_affected": true,
       "gold_reason": "exploitable",
-      "status": "exploitable",
+      "status": "needs_review",
       "symbol_hit": true,
       "evidence_verified": true,
       "pred_affected": true
@@ -176,10 +176,10 @@
       "advisory": "CVE-2019-10906",
       "gold_affected": false,
       "gold_reason": "input_trusted",
-      "status": "needs_review",
+      "status": "trigger_not_met",
       "symbol_hit": true,
       "evidence_verified": true,
-      "pred_affected": true
+      "pred_affected": false
     },
     {
       "case": "jinja_xmlattr_keys",
@@ -196,9 +196,9 @@
       "advisory": "CVE-2025-27516",
       "gold_affected": false,
       "gold_reason": "input_trusted",
-      "status": "needs_review",
+      "status": "exploitable",
       "symbol_hit": true,
-      "evidence_verified": false,
+      "evidence_verified": true,
       "pred_affected": true
     },
     {
@@ -316,7 +316,7 @@
       "advisory": "CVE-2020-14343",
       "gold_affected": false,
       "gold_reason": "trigger_not_met",
-      "status": "input_trusted",
+      "status": "trigger_not_met",
       "symbol_hit": true,
       "evidence_verified": true,
       "pred_affected": false
@@ -336,21 +336,21 @@
     "n": 33,
     "tp": 10,
     "fn": 2,
-    "fp": 11,
-    "tn": 10,
+    "fp": 10,
+    "tn": 11,
     "recall": 0.833,
-    "precision": 0.476,
-    "alert_reduction": 0.476,
-    "accuracy": 0.606,
-    "needs_review_rate": 0.303,
-    "symbol_hit_rate": 1.0,
-    "reason_match": 0.5
+    "precision": 0.5,
+    "alert_reduction": 0.524,
+    "accuracy": 0.636,
+    "needs_review_rate": 0.182,
+    "symbol_hit_rate": 0.97,
+    "reason_match": 0.455
   },
   "cost": {
-    "llm_calls": 225,
-    "prompt_tokens": 286229,
-    "completion_tokens": 22256,
-    "seconds": 536.6
+    "llm_calls": 209,
+    "prompt_tokens": 270173,
+    "completion_tokens": 20106,
+    "seconds": 491.5
   },
   "model": "Qwen3-4B-Q5_K_M.gguf"
 }

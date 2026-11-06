@@ -49,7 +49,7 @@
   .meta { color: var(--muted); font-size: 13px; }
   .chain { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; }
   .chain span.arrow { color: var(--muted); }
-  #graph { height: 280px; border: 1px solid var(--line); border-radius: 8px; background: var(--code); }
+  #graph { height: 340px; border: 1px solid var(--line); border-radius: 8px; background: var(--code); }
   .verdict { border-left: 3px solid currentColor; padding: 8px 14px; background: var(--code); border-radius: 0 6px 6px 0; }
   .verdict p { color: var(--ink); margin: 6px 0 0; }
   pre.snippet { background: var(--code); border: 1px solid var(--line); border-radius: 6px; padding: 8px 0; overflow-x: auto; margin: 6px 0 12px; }
@@ -167,7 +167,7 @@ function drawGraph(p) {
   const edges = p.hops.map((h, i) => ({ data: { id: "e" + i, source: h.caller, target: h.callee,
       label: `${h.file.split("/").pop()}:${h.line}`, conf: h.confidence } }));
   cy = cytoscape({ container: $("#graph"), elements: [...nodes, ...edges], userZoomingEnabled: false,
-    layout: { name: "breadthfirst", directed: true, spacingFactor: 1.05, roots: [p.nodes[0]] },
+    layout: { name: "breadthfirst", directed: true, spacingFactor: 1.6, roots: [p.nodes[0]] },
     style: [
       { selector: "node", style: { label: "data(label)", "font-size": 10, color: v("--ink"), "text-valign": "bottom", "text-margin-y": 4,
           width: 14, height: 14, "background-color": v("--blue"), "font-family": "ui-monospace, monospace", "text-wrap": "wrap", "text-max-width": 220 } },
@@ -175,7 +175,7 @@ function drawGraph(p) {
       { selector: "node[kind='lib']", style: { "background-color": v("--gray") } },
       { selector: "node[kind='target']", style: { "background-color": v("--red"), shape: "diamond", width: 20, height: 20 } },
       { selector: "edge", style: { width: 2, "line-color": v("--gray"), "target-arrow-color": v("--gray"), "target-arrow-shape": "triangle",
-          "curve-style": "bezier", label: "data(label)", "font-size": 9, color: v("--muted"), "text-background-color": v("--code"), "text-background-opacity": 1 } },
+          "curve-style": "bezier", label: "data(label)", "font-size": 9, color: v("--muted"), "text-background-color": v("--code"), "text-background-opacity": 1, "text-margin-x": 70 } },
       { selector: "edge[conf='inferred']", style: { "line-style": "dashed" } },
       { selector: "edge[conf='runtime']", style: { "line-style": "dashed", "line-dash-pattern": [2, 4], "line-color": v("--blue"), "target-arrow-color": v("--blue") } },
       { selector: "edge[conf='name']", style: { "line-style": "dotted", "line-color": v("--amber"), "target-arrow-color": v("--amber") } },

@@ -10,6 +10,7 @@ qualname field an enum, so it cannot invent symbols that don't exist.
 
 from __future__ import annotations
 
+import re
 from typing import Literal
 
 import networkx as nx
@@ -105,6 +106,23 @@ Only choose from the candidate list. If none apply, return an empty list with lo
 Keep reasoning under 80 words."""
 
 
+_IDENT = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]*\b")
+
+
+def named_in_advisory(adv: osv.Advisory, candidates: list[str], chosen: set[str]) -> list[VulnSymbol]:
+    """Recall floor: candidates whose name the advisory literally mentions ("the full_load method
+    or the FullLoader loader") are always kept, so the LLM can add symbols but never silently drop
+    the obvious ones (a dropped symbol becomes a false 'not reachable')."""
+    words = set(_IDENT.findall(f"{adv.summary} {adv.details}"))
+    out = []
+    for q in candidates:
+        leaf = q.rsplit(".", 1)[-1]
+        distinctive = "_" in leaf.strip("_") or (leaf[:1].isupper() and any(c.islower() for c in leaf) and sum(c.isupper() for c in leaf) > 1)
+        if q not in chosen and leaf in words and distinctive and len(leaf) > 4:
+            out.append(VulnSymbol(qualname=q, trigger="named in advisory text"))
+    return out
+
+
 def extract(cg: CodeGraph, adv: osv.Advisory, llm: LLM | None, index: HybridIndex | None) -> VulnSpec:
     changed, candidates, tags = gather_candidates(cg, adv, index)
     base = dict(advisory=adv.display_id, package=adv.package, changed=changed, candidates=candidates)
@@ -152,6 +170,8 @@ def extract(cg: CodeGraph, adv: osv.Advisory, llm: LLM | None, index: HybridInde
                              _LLMOut, schema=schema, validate=validate, purpose=f"symbols:{adv.display_id}",
                              max_tokens=900)
     except StructuredOutputError:
-        return VulnSpec(**base, symbols=[VulnSymbol(qualname=q, trigger="unknown") for q in changed], method="diff-only")
+        return VulnSpec(**base, symbols=[VulnSymbol(qualname=q, trigger="unknown") for q in changed]
+                        + named_in_advisory(adv, candidates, set(changed)), method="diff-only")
+    out.symbols += named_in_advisory(adv, candidates, {s.qualname for s in out.symbols})
     return VulnSpec(**base, symbols=out.symbols, attacker_input=out.attacker_input, safe_usage=out.safe_usage,
                     confidence=out.confidence, method="llm")

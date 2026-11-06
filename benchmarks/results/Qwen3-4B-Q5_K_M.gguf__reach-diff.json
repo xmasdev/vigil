@@ -350,7 +350,7 @@
     "llm_calls": 0,
     "prompt_tokens": 0,
     "completion_tokens": 0,
-    "seconds": 42.2
+    "seconds": 49.2
   },
   "model": "Qwen3-4B-Q5_K_M.gguf"
 }
