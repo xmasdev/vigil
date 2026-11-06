@@ -1,0 +1,2 @@
+{"description": "ImageMath.eval with a constant expression and fixed variable names; only pixel data is untrusted.",
+ "labels": {"CVE-2023-50447": {"affected": false, "reason": "input_trusted"}}}

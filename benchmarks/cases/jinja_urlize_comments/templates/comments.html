@@ -1,0 +1,5 @@
+<ul>
+{% for c in comments %}
+  <li>{{ c|urlize(40, true) }}</li>
+{% endfor %}
+</ul>

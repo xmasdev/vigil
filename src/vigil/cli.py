@@ -48,6 +48,27 @@ def scan(project: Path = typer.Argument(Path("."), exists=True, file_okay=False)
                   f"{s['llm_calls']} LLM calls, {s['seconds']}s. Report: {run_dir / 'report.json'}")
 
 
+@app.command("eval")
+def evaluate(cases: Path = typer.Option(Path("benchmarks/cases"), exists=True, file_okay=False),
+             out: Path = typer.Option(Path("benchmarks/results")),
+             config: list[str] = typer.Option(None, "--config", "-c", help="scanner reach-diff reach-llm workflow agent"),
+             no_retrieval: bool = typer.Option(False, "--no-retrieval")):
+    """Run the labeled benchmark and write metrics to benchmarks/results/."""
+    from .evaluate import CONFIGS, run
+    md = run(cases, out, config or CONFIGS, with_retrieval=not no_retrieval, log=lambda m: console.print(f"[dim]{m}[/dim]"))
+    console.print(md)
+
+
+@app.command()
+def serve(project: Path = typer.Argument(Path("."), exists=True, file_okay=False),
+          port: int = typer.Option(8765), results: Path = typer.Option(Path("benchmarks/results"))):
+    """Open the web UI for a project's scans (and the benchmark results)."""
+    import uvicorn
+    from .web.server import create_app
+    console.print(f"vigil UI → http://localhost:{port}")
+    uvicorn.run(create_app(project, results.resolve()), host="127.0.0.1", port=port, log_level="warning")
+
+
 @app.command()
 def graph(project: Path = typer.Argument(Path("."), exists=True, file_okay=False)):
     """Print call-graph statistics and entry points for a project (no dependencies)."""

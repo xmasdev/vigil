@@ -52,7 +52,7 @@ NULL_TRACER = Tracer()
 
 class LLM:
     def __init__(self, base_url: str = CHAT_URL, tracer: Tracer = NULL_TRACER, thinking: bool = False,
-                 temperature: float = 0.2):
+                 temperature: float = float(os.environ.get("VIGIL_TEMPERATURE", "0"))):
         self.client = OpenAI(base_url=base_url, api_key="local", timeout=300)
         self.tracer = tracer
         self.thinking = thinking

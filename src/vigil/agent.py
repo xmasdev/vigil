@@ -27,6 +27,7 @@ from .llm import LLM, StructuredOutputError
 from .reach import Path as CallPath
 from .symbols import VulnSpec
 
+TEXT_SUFFIXES = {".html", ".htm", ".j2", ".jinja", ".jinja2", ".txt", ".cfg", ".ini", ".toml", ".yaml", ".yml", ".env", ".json"}
 Verdict = Literal["exploitable", "trigger_not_met", "input_trusted", "needs_review"]
 
 
@@ -122,19 +123,28 @@ class TriageAgent:
         except re.error as e:
             return f"Invalid regex: {e}"
         hits = []
-        for m in self.cg.modules.values():
-            if m.package != PROJECT:
-                continue
-            for i, line in enumerate(m.source.splitlines(), 1):
+        for rel, lines in self.project_files().items():
+            for i, line in enumerate(lines, 1):
                 if rx.search(line):
-                    hits.append(f"{self._rel(str(m.file))}:{i}: {line.strip()[:160]}")
+                    hits.append(f"{rel}:{i}: {line.strip()[:160]}")
         return "\n".join(hits[:30]) or "No matches."
+
+    def project_files(self) -> dict[str, list[str]]:
+        """Application source + templates/configs (vulnerable features often live in templates)."""
+        if not hasattr(self, "_files"):
+            self._files = {self._rel(str(m.file)): m.source.splitlines()
+                           for m in self.cg.modules.values() if m.package == PROJECT}
+            for f in sorted(self.root.rglob("*")):
+                if f.suffix in TEXT_SUFFIXES and f.is_file() and not any(
+                        part.startswith(".") or part in ("venv", "node_modules") for part in f.relative_to(self.root).parts):
+                    self._files[self._rel(str(f))] = f.read_text(errors="replace").splitlines()
+        return self._files
 
     # ------------------------------------------------------------------ evidence check
     def verify_evidence(self, ev: list[Evidence]) -> list[str]:
         errors = []
         norm = lambda s: re.sub(r"\s+", "", s)
-        files = {self._rel(str(m.file)): m.source.splitlines() for m in self.cg.modules.values()}
+        files = {self._rel(str(m.file)): m.source.splitlines() for m in self.cg.modules.values()} | self.project_files()
         for e in ev:
             lines = files.get(e.file) or next((v for k, v in files.items() if k.endswith("/" + e.file) or k.endswith(e.file)), None)
             if lines is None:

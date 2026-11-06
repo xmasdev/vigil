@@ -8,6 +8,8 @@
 from __future__ import annotations
 
 import json
+
+import networkx as nx
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -17,7 +19,8 @@ from . import deps, osv, sources, symbols
 from .agent import Judgment, TriageAgent
 from .codegraph import PROJECT, CodeGraph
 from .llm import LLM, Tracer
-from .reach import find_paths
+from .reach import Path as CallPath, find_paths
+from .codegraph import CallSite
 from .retrieval import Embedder
 from .workflow import TriageWorkflow
 
@@ -61,9 +64,37 @@ class Report:
 def _path_dict(p, agent: TriageAgent | None, cg: CodeGraph) -> dict:
     rel = (agent._rel if agent else (lambda f: f))
     return {"entry": p.entry, "entry_kind": p.entry_kind, "target": p.target, "confidence": p.confidence,
-            "nodes": p.nodes,
+            "nodes": p.nodes, "packages": [cg.nodes[n].package if n in cg.nodes else "?" for n in p.nodes],
             "hops": [{"caller": s.caller, "callee": s.callee, "file": rel(s.file), "line": s.lineno,
                       "confidence": s.confidence, "call": s.raw} for s in p.sites]}
+
+
+def _dynamic_dispatch_paths(cg: CodeGraph, targets: list[str], package: str) -> list[CallPath]:
+    """Unknown != unreachable. If the vulnerable code is only reachable from a function
+    whose address is taken (stored in a registry like Jinja's FILTERS dict, a plugin table,
+    a callback list) and which nothing calls directly, the call graph cannot decide
+    reachability. When the application imports the package, emit a low-confidence
+    'runtime' path to that dispatch root and let triage check whether the app uses the
+    feature. Package not imported by the app -> stays unreachable."""
+    is_fn = lambda q: cg.nodes.get(q) and cg.nodes[q].kind in ("function", "method", "main")
+    roots: list[str] = []
+    for t in targets:
+        for q in [t, *nx.ancestors(cg.g, t)]:
+            if q in cg.address_taken and cg.nodes[q].package == package \
+                    and not any(is_fn(u) for u in cg.g.predecessors(q)) and q not in roots:
+                roots.append(q)
+    if not roots:
+        return []
+    pkg_roots = {name.split(".")[0] for name, m in cg.modules.items() if m.package == package}
+    for name, m in cg.modules.items():
+        if m.package == PROJECT and any(b.split(".")[0] in pkg_roots for b in m.bindings.values()):
+            entry = f"{name}.<module>"
+            out = []
+            for root in roots[:3]:
+                site = CallSite(entry, root, f"<runtime> dynamic dispatch into {root}", str(m.file), 1, "name")
+                out.append(CallPath(entry, "import", root, [entry, root], [site], "name"))
+            return out
+    return []
 
 
 def scan(project: Path, *, use_llm: bool = True, run_dir: Path | None = None, only: set[str] | None = None,
@@ -98,7 +129,8 @@ def scan(project: Path, *, use_llm: bool = True, run_dir: Path | None = None, on
     embedder = Embedder() if use_llm else None
     indexes: dict[str, Any] = {}
     agent = TriageAgent(cg, llm, project) if llm else None
-    judge = (TriageWorkflow(agent).judge if triage == "workflow" else agent.judge) if agent else None
+    judge = {"workflow": lambda: TriageWorkflow(agent).judge, "agent": lambda: agent.judge}.get(triage, lambda: None)() \
+        if agent else None
     findings: list[Finding] = []
 
     for adv in advisories:
@@ -108,6 +140,8 @@ def scan(project: Path, *, use_llm: bool = True, run_dir: Path | None = None, on
             spec = symbols.extract(cg, adv, llm, indexes[adv.package])
             targets = [q for s in spec.symbols if (q := cg.resolve(s.qualname) or s.qualname) in cg.g]
             paths = find_paths(cg, targets)
+            if not paths and targets:
+                paths = _dynamic_dispatch_paths(cg, targets, adv.package)
             f = Finding(adv.display_id, adv.aliases, adv.package, adv.version, adv.severity, adv.summary,
                         adv.fixed_versions, res.chain_to(adv.package), status="no_symbols",
                         spec=spec.model_dump(), paths=[_path_dict(p, agent, cg) for p in paths])
@@ -115,7 +149,7 @@ def scan(project: Path, *, use_llm: bool = True, run_dir: Path | None = None, on
                 f.status = "no_symbols"
             elif not paths:
                 f.status = "not_reachable"
-            elif agent:
+            elif judge:
                 j: Judgment = judge(spec, paths[0], adv.summary)
                 f.judgment = j.model_dump()
                 f.status = j.verdict

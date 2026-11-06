@@ -1,5 +1,4 @@
 from flask import Flask, request
-import yaml
 
 from helpers import parse_config
 

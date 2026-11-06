@@ -1,0 +1,14 @@
+{
+  "_doc": "Qualified-name prefixes that count as a correct vulnerable-symbol extraction for each CVE.",
+  "CVE-2020-14343": ["yaml.full_load", "yaml.load", "yaml.loader.FullLoader", "yaml.unsafe_load", "yaml.loader.UnsafeLoader", "yaml.constructor.FullConstructor"],
+  "CVE-2019-10906": ["jinja2.sandbox"],
+  "CVE-2024-56326": ["jinja2.sandbox"],
+  "CVE-2025-27516": ["jinja2.sandbox", "jinja2.filters.do_attr"],
+  "CVE-2020-28493": ["jinja2.utils.urlize", "jinja2.filters.do_urlize"],
+  "CVE-2024-22195": ["jinja2.filters.do_xmlattr"],
+  "CVE-2024-34064": ["jinja2.filters.do_xmlattr"],
+  "CVE-2023-50447": ["PIL.ImageMath.eval", "PIL.ImageMath"],
+  "CVE-2021-43818": ["lxml.html.clean"],
+  "CVE-2023-43804": ["urllib3.poolmanager.PoolManager.urlopen", "urllib3.request.RequestMethods", "urllib3.connectionpool.HTTPConnectionPool.urlopen"],
+  "CVE-2023-30861": ["flask.sessions"]
+}

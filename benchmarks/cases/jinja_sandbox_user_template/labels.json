@@ -1,0 +1,2 @@
+{"description": "Customers submit their own templates, rendered in a SandboxedEnvironment.",
+ "labels": {"CVE-2019-10906": {"affected": true, "reason": "exploitable"}, "CVE-2024-56326": {"affected": true, "reason": "exploitable"}, "CVE-2025-27516": {"affected": true, "reason": "exploitable"}}}

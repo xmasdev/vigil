@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import ast
 import builtins
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -106,6 +107,7 @@ class CodeGraph:
         self.g = nx.DiGraph()
         self.stats = {"calls": 0, "exact": 0, "inferred": 0, "name": 0, "unresolved": 0, "parse_errors": 0}
         self._methods_by_name: dict[str, list[str]] = {}
+        self.address_taken: set[str] = set()  # functions stored as values (registries, callbacks)
 
     # ------------------------------------------------------------------ indexing
     def add_tree(self, root: Path, package: str, top_level: list[str] | None = None) -> None:
@@ -130,7 +132,9 @@ class CodeGraph:
             name = ".".join(parts)
             try:
                 src = f.read_text(errors="replace")
-                tree = ast.parse(src, filename=str(f))
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    tree = ast.parse(src, filename=str(f))
             except (SyntaxError, ValueError):
                 self.stats["parse_errors"] += 1
                 continue
@@ -420,6 +424,13 @@ class CodeGraph:
                         var_types[n.optional_vars.id] = r
                 elif isinstance(n, ast.Call):
                     self._handle_call(m, n, qn, cls_qn, resolve_expr, seg, imports)
+                if isinstance(n, (ast.Dict, ast.List, ast.Tuple, ast.Set, ast.Assign)):
+                    vals = n.values if isinstance(n, ast.Dict) else [n.value] if isinstance(n, ast.Assign) else n.elts
+                    for v in vals:
+                        if v is not None and (d := _dotted(v)):
+                            r, _, inst = resolve_expr(d)
+                            if r and not inst and self.nodes.get(r) and self.nodes[r].kind in ("function", "method"):
+                                self.address_taken.add(r)
 
             # recurse into nested scopes (module-level defs are named mod.f, nested ones outer.f)
             prefix = m.name if isinstance(scope_node, ast.Module) else qn
@@ -481,6 +492,12 @@ class CodeGraph:
                 if bq and (meth := self.lookup_method(bq, call.func.attr)):
                     callee, conf = meth, "inferred"
                     break
+        elif isinstance(call.func, ast.Attribute) and isinstance(call.func.value, ast.Call) \
+                and (d := _dotted(call.func.value.func)):
+            # Engine().run(...): method on a freshly constructed instance
+            r, _, _ = resolve_expr(d)
+            if r in self.classes and (meth := self.lookup_method(r, call.func.attr)):
+                callee, conf = meth, "inferred"
         elif (d := _dotted(call.func)):
             if d[0] in BUILTINS and len(d) == 1 and d[0] not in m.bindings:
                 self.stats["calls"] -= 1
@@ -511,6 +528,8 @@ class CodeGraph:
             if (d := _dotted(val)):
                 r, _, inst = resolve_expr(d)
                 if r and not inst and self.nodes.get(r) and self.nodes[r].kind in ("function", "method", "class"):
+                    if self.nodes[r].kind != "class":
+                        self.address_taken.add(r)  # passed as a callback / registered
                     self._edge(CallSite(caller, r, f"{raw}(…{'.'.join(d)}…)", str(m.file), call.lineno,
                                         "inferred", keywords, args))
 

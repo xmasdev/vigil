@@ -1,0 +1,2 @@
+{"description": "Same as cookie_redirect but redirects are disabled.",
+ "labels": {"CVE-2023-43804": {"affected": false, "reason": "trigger_not_met"}}}

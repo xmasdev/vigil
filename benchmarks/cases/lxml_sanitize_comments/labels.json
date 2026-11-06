@@ -1,0 +1,2 @@
+{"description": "lxml Cleaner used as the XSS sanitizer for user posts.",
+ "labels": {"CVE-2021-43818": {"affected": true, "reason": "exploitable"}}}

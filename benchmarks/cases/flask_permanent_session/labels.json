@@ -1,0 +1,2 @@
+{"description": "Permanent sessions with default SESSION_REFRESH_EACH_REQUEST; some routes never touch the session.",
+ "labels": {"CVE-2023-30861": {"affected": true, "reason": "exploitable"}}}

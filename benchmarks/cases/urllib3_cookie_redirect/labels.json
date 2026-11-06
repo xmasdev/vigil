@@ -1,0 +1,2 @@
+{"description": "Forwards the user's Cookie header to an arbitrary URL with redirects enabled (default).",
+ "labels": {"CVE-2023-43804": {"affected": true, "reason": "exploitable"}}}

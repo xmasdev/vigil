@@ -1,0 +1,2 @@
+{"description": "Stateless JSON API, no sessions.",
+ "labels": {"CVE-2023-30861": {"affected": false, "reason": "trigger_not_met"}}}

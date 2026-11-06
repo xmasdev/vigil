@@ -1,0 +1,2 @@
+{"description": "Parses a local XML file; the HTML cleaner is never used.",
+ "labels": {"CVE-2021-43818": {"affected": false, "reason": "not_reachable"}}}

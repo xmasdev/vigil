@@ -1,0 +1,2 @@
+{"description": "User-supplied ImageMath expression.",
+ "labels": {"CVE-2023-50447": {"affected": true, "reason": "exploitable"}}}

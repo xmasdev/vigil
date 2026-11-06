@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vigil</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --ink: #1b1f24; --muted: #626b77; --line: #e2e5ea; --code: #f2f4f7;
+    --red: #c4372b; --amber: #b7791f; --green: #2f855a; --blue: #2b6cb0; --gray: #8a939e; --hl: #fff4c2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111418; --panel: #191d23; --ink: #e6e9ee; --muted: #9aa3ae; --line: #2a3038; --code: #12161b;
+            --red: #f2685c; --amber: #e2a63b; --green: #5cc28c; --blue: #6aa8ea; --gray: #6b7480; --hl: #3a3420; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  code, pre, .mono { font-family: ui-monospace, "JetBrains Mono", Menlo, monospace; font-size: 12.5px; }
+  header { display: flex; align-items: center; gap: 16px; padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 2; flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0; letter-spacing: .02em; }
+  header .proj { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40ch; }
+  header .spacer { flex: 1; }
+  select, button { font: inherit; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+  button.primary { background: var(--blue); color: #fff; border-color: transparent; cursor: pointer; }
+  button:disabled { opacity: .6; }
+  nav.tabs { display: flex; gap: 4px; }
+  nav.tabs button { border: none; background: none; cursor: pointer; color: var(--muted); padding: 6px 10px; border-bottom: 2px solid transparent; border-radius: 0; }
+  nav.tabs button.on { color: var(--ink); border-bottom-color: var(--blue); }
+  .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; padding: 16px 20px 0; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; }
+  .stat b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+  .stat span { color: var(--muted); font-size: 12px; }
+  main { display: grid; grid-template-columns: minmax(260px, 360px) 1fr; gap: 16px; padding: 16px 20px 40px; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  .list { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; align-self: start; }
+  .item { padding: 10px 14px; border-bottom: 1px solid var(--line); cursor: pointer; display: grid; gap: 2px; }
+  .item:last-child { border-bottom: none; }
+  .item:hover { background: var(--code); }
+  .item.sel { box-shadow: inset 3px 0 0 var(--blue); background: var(--code); }
+  .item .top { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+  .item .sub { color: var(--muted); font-size: 12px; }
+  .pill { font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 999px; white-space: nowrap; border: 1px solid currentColor; }
+  .s-exploitable { color: var(--red); } .s-needs_review { color: var(--amber); }
+  .s-trigger_not_met, .s-input_trusted { color: var(--green); } .s-not_reachable, .s-no_symbols { color: var(--gray); }
+  .detail { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px 22px; min-width: 0; }
+  .detail h2 { margin: 0 0 4px; font-size: 18px; }
+  .detail h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 22px 0 8px; }
+  .meta { color: var(--muted); font-size: 13px; }
+  .chain { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; }
+  .chain span.arrow { color: var(--muted); }
+  #graph { height: 280px; border: 1px solid var(--line); border-radius: 8px; background: var(--code); }
+  .verdict { border-left: 3px solid currentColor; padding: 8px 14px; background: var(--code); border-radius: 0 6px 6px 0; }
+  .verdict p { color: var(--ink); margin: 6px 0 0; }
+  pre.snippet { background: var(--code); border: 1px solid var(--line); border-radius: 6px; padding: 8px 0; overflow-x: auto; margin: 6px 0 12px; }
+  pre.snippet div { padding: 0 12px; white-space: pre; }
+  pre.snippet div.hl { background: var(--hl); }
+  pre.snippet .ln { color: var(--muted); display: inline-block; width: 4ch; text-align: right; margin-right: 12px; user-select: none; }
+  .syms li { margin-bottom: 4px; }
+  .trace { display: grid; gap: 6px; }
+  .ev { border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; font-size: 12.5px; }
+  .ev summary { cursor: pointer; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+  .ev .k { font-weight: 600; min-width: 9ch; }
+  .ev pre { white-space: pre-wrap; word-break: break-word; margin: 6px 0 0; color: var(--muted); max-height: 320px; overflow: auto; }
+  .k-llm { color: var(--blue); } .k-tool { color: var(--green); } .k-bad { color: var(--red); }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); font-size: 13px; }
+  th { color: var(--muted); font-weight: 600; }
+  .empty { color: var(--muted); padding: 40px; text-align: center; }
+  .bench { padding: 16px 20px 40px; display: grid; gap: 16px; }
+  .bench .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px 20px; overflow-x: auto; }
+  .bar { height: 8px; border-radius: 4px; background: var(--blue); }
+</style>
+</head>
+<body>
+<header>
+  <h1>vigil</h1>
+  <div class="proj" id="proj"></div>
+  <nav class="tabs"><button class="on" data-tab="findings">Findings</button><button data-tab="bench">Benchmark</button></nav>
+  <div class="spacer"></div>
+  <select id="runs" aria-label="Scan run"></select>
+  <button class="primary" id="scanBtn">Scan now</button>
+</header>
+
+<section id="tab-findings">
+  <div class="summary" id="summary"></div>
+  <main>
+    <div class="list" id="list"></div>
+    <div class="detail" id="detail"><div class="empty">Select a finding</div></div>
+  </main>
+</section>
+<section id="tab-bench" class="bench" hidden></section>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const LABEL = {exploitable: "exploitable", needs_review: "needs review", trigger_not_met: "trigger not met",
+               input_trusted: "input trusted", not_reachable: "not reachable", no_symbols: "unknown symbols"};
+let report = null, runId = null, cy = null;
+
+async function api(path, opts) { const r = await fetch(path, opts); if (!r.ok) throw new Error(await r.text()); return r.json(); }
+
+async function loadRuns(select) {
+  const data = await api("/api/runs");
+  $("#proj").textContent = data.project;
+  $("#runs").innerHTML = data.runs.map(r => `<option value="${r.id}">${r.id} · ${r.stats.exploitable} exploitable / ${r.stats.advisories}</option>`).join("")
+    || "<option>no runs yet</option>";
+  if (data.runs.length) { $("#runs").value = select || data.runs[0].id; await loadRun($("#runs").value); }
+  else { $("#list").innerHTML = '<div class="empty">No scans yet. Click “Scan now”.</div>'; }
+}
+
+async function loadRun(id) {
+  runId = id; report = await api(`/api/runs/${id}/report`);
+  const s = report.stats, g = report.graph_stats;
+  const flagged = s.exploitable + s.needs_review;
+  $("#summary").innerHTML = [
+    [s.advisories, "advisories matched"], [s.exploitable, "exploitable"], [s.needs_review, "need review"],
+    [`${Math.round(100 * (1 - flagged / Math.max(1, s.advisories)))}%`, "alerts deprioritised"],
+    [`${Math.round(100 * g.coverage)}%`, "calls statically resolved"], [`${s.llm_calls} · ${s.seconds}s`, `LLM calls · runtime (${esc(report.model || "no LLM")})`],
+  ].map(([b, t]) => `<div class="stat"><b>${b}</b><span>${t}</span></div>`).join("");
+  $("#list").innerHTML = report.findings.map((f, i) => `
+    <div class="item" data-i="${i}">
+      <div class="top"><b>${esc(f.advisory)}</b><span class="pill s-${f.status}">${LABEL[f.status]}</span></div>
+      <div class="sub">${esc(f.package)} ${esc(f.version)} · ${esc(f.severity || "n/a")} · ${esc(f.summary).slice(0, 70)}</div>
+    </div>`).join("");
+  document.querySelectorAll(".item").forEach(el => el.onclick = () => select(+el.dataset.i));
+  if (report.findings.length) select(0);
+}
+
+async function snippet(file, line) {
+  try {
+    const s = await api(`/api/source?file=${encodeURIComponent(file)}&line=${line}`);
+    return `<pre class="snippet">${s.lines.map((l, i) => { const n = s.start + i;
+      return `<div class="${n === s.highlight ? "hl" : ""}"><span class="ln">${n}</span>${esc(l)}</div>`; }).join("")}</pre>`;
+  } catch { return ""; }
+}
+
+async function select(i) {
+  document.querySelectorAll(".item").forEach(el => el.classList.toggle("sel", +el.dataset.i === i));
+  const f = report.findings[i], j = f.judgment, p = f.paths[0], spec = f.spec || {};
+  let html = `<h2>${esc(f.advisory)} <span class="pill s-${f.status}">${LABEL[f.status]}</span></h2>
+    <div class="meta">${esc(f.package)} ${esc(f.version)} → fixed in ${esc(f.fixed_versions.join(", ") || "n/a")} · ${esc(f.severity || "")} · ${esc(f.aliases.join(", "))}</div>
+    <p>${esc(f.summary)}</p>
+    <h3>Dependency chain</h3><div class="chain">${["your project", ...f.dependency_chain].map(esc).join('<span class="arrow">→</span>')}</div>`;
+  if (j) html += `<h3>Verdict</h3><div class="verdict s-${f.status}"><b>${LABEL[f.status]}</b> · confidence ${esc(j.confidence)}
+      · ${j.evidence_verified ? "evidence verified ✓" : "evidence unverified"}<p>${esc(j.reasoning)}</p>
+      ${j.attacker_controlled ? `<p><b>Data source:</b> ${esc(j.attacker_controlled)}</p>` : ""}</div>`;
+  else if (f.status === "not_reachable") html += `<h3>Verdict</h3><div class="verdict s-not_reachable"><b>not reachable</b><p>No call path from any entry point of the application to the vulnerable symbols below (static analysis, ${Math.round(100 * report.graph_stats.coverage)}% of calls resolved).</p></div>`;
+  if (spec.symbols?.length) html += `<h3>Vulnerable symbols (${esc(spec.method)}, ${esc(spec.confidence)} confidence)</h3><ul class="syms">${
+      spec.symbols.map(s => `<li><code>${esc(s.qualname)}</code> — ${esc(s.trigger)}</li>`).join("")}</ul>
+      ${spec.safe_usage ? `<div class="meta">Safe usage: ${esc(spec.safe_usage)}</div>` : ""}`;
+  if (p) html += `<h3>Call path · ${esc(p.entry_kind)} entry · ${esc(p.confidence)} confidence</h3><div id="graph"></div>`;
+  if (j?.evidence?.length) {
+    html += `<h3>Evidence</h3>`;
+    for (const e of j.evidence) html += `<div class="mono">${esc(e.file)}:${e.line}</div>` + await snippet(e.file, e.line);
+  }
+  html += `<h3>Agent trace</h3><div class="trace" id="trace">loading…</div>`;
+  $("#detail").innerHTML = html;
+  if (p) drawGraph(p);
+  drawTrace(await api(`/api/runs/${runId}/trace?advisory=${encodeURIComponent(f.advisory)}`));
+}
+
+function drawGraph(p) {
+  const css = getComputedStyle(document.documentElement), v = n => css.getPropertyValue(n).trim();
+  const nodes = p.nodes.map((n, i) => ({ data: { id: n, label: n.length > 46 ? "…" + n.slice(-45) : n,
+      kind: i === 0 ? "entry" : i === p.nodes.length - 1 ? "target" : (p.packages?.[i] === "<project>" ? "app" : "lib") } }));
+  const edges = p.hops.map((h, i) => ({ data: { id: "e" + i, source: h.caller, target: h.callee,
+      label: `${h.file.split("/").pop()}:${h.line}`, conf: h.confidence } }));
+  cy = cytoscape({ container: $("#graph"), elements: [...nodes, ...edges], userZoomingEnabled: false,
+    layout: { name: "breadthfirst", directed: true, spacingFactor: 1.05, roots: [p.nodes[0]] },
+    style: [
+      { selector: "node", style: { label: "data(label)", "font-size": 10, color: v("--ink"), "text-valign": "bottom", "text-margin-y": 4,
+          width: 14, height: 14, "background-color": v("--blue"), "font-family": "ui-monospace, monospace", "text-wrap": "wrap", "text-max-width": 220 } },
+      { selector: "node[kind='entry']", style: { "background-color": v("--green"), shape: "round-rectangle", width: 18 } },
+      { selector: "node[kind='lib']", style: { "background-color": v("--gray") } },
+      { selector: "node[kind='target']", style: { "background-color": v("--red"), shape: "diamond", width: 20, height: 20 } },
+      { selector: "edge", style: { width: 2, "line-color": v("--gray"), "target-arrow-color": v("--gray"), "target-arrow-shape": "triangle",
+          "curve-style": "bezier", label: "data(label)", "font-size": 9, color: v("--muted"), "text-background-color": v("--code"), "text-background-opacity": 1 } },
+      { selector: "edge[conf='inferred']", style: { "line-style": "dashed" } },
+      { selector: "edge[conf='name']", style: { "line-style": "dotted", "line-color": v("--amber"), "target-arrow-color": v("--amber") } },
+    ] });
+}
+
+function drawTrace(events) {
+  const rows = events.filter(e => ["llm", "tool", "verdict", "validation_failed", "evidence_rejected", "budget_exhausted"].includes(e.kind));
+  if (!rows.length) { $("#trace").innerHTML = '<div class="meta">No LLM activity for this finding (decided deterministically).</div>'; return; }
+  $("#trace").innerHTML = rows.map(e => {
+    if (e.kind === "llm") return `<details class="ev"><summary><span class="k k-llm">LLM</span><span>${esc(e.purpose)}</span>
+        <span class="meta">${e.seconds}s · ${e.prompt_tokens}→${e.completion_tokens} tok${e.tool_calls?.length ? " · calls " + e.tool_calls.map(t => esc(t.name)).join(", ") : ""}</span></summary>
+        <pre>${esc(e.output || JSON.stringify(e.tool_calls, null, 1))}</pre></details>`;
+    if (e.kind === "tool") return `<details class="ev"><summary><span class="k k-tool">tool</span><span class="mono">${esc(e.name)}(${esc(JSON.stringify(e.args))})</span></summary><pre>${esc(e.result)}</pre></details>`;
+    return `<details class="ev"><summary><span class="k ${e.kind === "verdict" ? "k-tool" : "k-bad"}">${esc(e.kind.replace("_", " "))}</span>
+        <span>${esc(e.verdict || (e.errors || []).join("; ") || "")}</span></summary></details>`;
+  }).join("");
+}
+
+async function loadBench() {
+  const d = await api("/api/eval");
+  if (!d.results.length) { $("#tab-bench").innerHTML = '<div class="card empty">No benchmark results yet — run <code>vigil eval</code>.</div>'; return; }
+  const byModel = {};
+  d.results.forEach(r => (byModel[r.model] ??= []).push(r));
+  const order = ["scanner", "reach-diff", "reach-llm", "workflow", "agent"];
+  let html = "";
+  for (const [model, rs] of Object.entries(byModel)) {
+    rs.sort((a, b) => order.indexOf(a.config) - order.indexOf(b.config));
+    html += `<div class="card"><h3>Triage benchmark · ${esc(model)}</h3><table><tr><th>config</th><th>recall (affected caught)</th>
+      <th>alert reduction</th><th>accuracy</th><th>needs review</th><th>symbol hit</th><th>LLM calls</th><th>time</th></tr>${
+      rs.map(r => { const m = r.metrics, c = r.cost; return `<tr><td><b>${esc(r.config)}</b></td>
+        <td>${Math.round(100 * m.recall)}% <span class="meta">(${m.tp}/${m.tp + m.fn})</span></td>
+        <td><div style="display:flex;gap:8px;align-items:center"><div class="bar" style="width:${Math.round(100 * m.alert_reduction)}px"></div>${Math.round(100 * m.alert_reduction)}%</div></td>
+        <td>${Math.round(100 * m.accuracy)}%</td><td>${Math.round(100 * m.needs_review_rate)}%</td>
+        <td>${m.symbol_hit_rate == null ? "–" : Math.round(100 * m.symbol_hit_rate) + "%"}</td><td>${c.llm_calls ?? 0}</td><td>${Math.round(c.seconds ?? 0)}s</td></tr>`; }).join("")}</table></div>`;
+  }
+  if (d.retrieval) html += `<div class="card"><h3>Retrieval · advisory text → vulnerable symbol</h3><table><tr><th>method</th><th>recall@5</th><th>recall@10</th><th>recall@20</th></tr>${
+      Object.entries(d.retrieval).map(([k, v]) => `<tr><td><b>${k}</b></td><td>${Math.round(100 * v["recall@5"])}%</td><td>${Math.round(100 * v["recall@10"])}%</td><td>${Math.round(100 * v["recall@20"])}%</td></tr>`).join("")}</table></div>`;
+  $("#tab-bench").innerHTML = html;
+}
+
+document.querySelectorAll("nav.tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav.tabs button").forEach(x => x.classList.toggle("on", x === b));
+  $("#tab-findings").hidden = b.dataset.tab !== "findings"; $("#tab-bench").hidden = b.dataset.tab !== "bench";
+  if (b.dataset.tab === "bench") loadBench();
+});
+$("#runs").onchange = e => loadRun(e.target.value);
+$("#scanBtn").onclick = async () => {
+  const btn = $("#scanBtn"); btn.disabled = true; btn.textContent = "Scanning…";
+  const { job } = await api("/api/scan", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+  const timer = setInterval(async () => {
+    const st = await api(`/api/scan/${job}`);
+    btn.textContent = st.log.length ? st.log[st.log.length - 1].trim().slice(0, 40) : "Scanning…";
+    if (st.status !== "running") { clearInterval(timer); btn.disabled = false; btn.textContent = "Scan now";
+      if (st.status === "done") loadRuns(st.run); else alert(st.error); }
+  }, 1500);
+};
+loadRuns();
+</script>
+</body>
+</html>

@@ -1,0 +1,2 @@
+{"description": "Uploaded file parsed by yaml.load with FullLoader held in an instance attribute.",
+ "labels": {"CVE-2020-14343": {"affected": true, "reason": "exploitable"}}}

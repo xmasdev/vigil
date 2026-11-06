@@ -1,0 +1,4 @@
+{"description": "Query-string keys become HTML attribute names via xmlattr.",
+ "labels": {"CVE-2024-22195": {"affected": true, "reason": "exploitable"},
+            "CVE-2024-34064": {"affected": true, "reason": "exploitable"},
+            "CVE-2019-10906": {"affected": false, "reason": "input_trusted"}, "CVE-2024-56326": {"affected": false, "reason": "input_trusted"}, "CVE-2025-27516": {"affected": false, "reason": "input_trusted"}}}

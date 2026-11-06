@@ -1,0 +1,2 @@
+{"description": "Fixed internal URLs, no Cookie header set.",
+ "labels": {"CVE-2023-43804": {"affected": false, "reason": "trigger_not_met"}}}

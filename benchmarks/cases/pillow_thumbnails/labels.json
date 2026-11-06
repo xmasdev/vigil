@@ -1,0 +1,2 @@
+{"description": "Only opens/thumbnails images; ImageMath is never used.",
+ "labels": {"CVE-2023-50447": {"affected": false, "reason": "not_reachable"}}}

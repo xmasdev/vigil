@@ -1,0 +1,2 @@
+{"description": "HTTP body flows through a helper into yaml.full_load.",
+ "labels": {"CVE-2020-14343": {"affected": true, "reason": "exploitable"}}}

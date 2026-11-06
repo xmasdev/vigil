@@ -1,0 +1,2 @@
+{"description": "Untrusted body, but yaml.load is called with SafeLoader.",
+ "labels": {"CVE-2020-14343": {"affected": false, "reason": "trigger_not_met"}}}

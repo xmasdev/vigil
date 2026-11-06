@@ -1,0 +1,2 @@
+{"description": "full_load only reads a config file shipped next to the code.",
+ "labels": {"CVE-2020-14343": {"affected": false, "reason": "input_trusted"}}}

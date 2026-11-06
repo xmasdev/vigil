@@ -1,0 +1,3 @@
+{"description": "User comments are passed through the urlize filter (ReDoS).",
+ "labels": {"CVE-2020-28493": {"affected": true, "reason": "exploitable"},
+            "CVE-2019-10906": {"affected": false, "reason": "input_trusted"}, "CVE-2024-56326": {"affected": false, "reason": "input_trusted"}, "CVE-2025-27516": {"affected": false, "reason": "input_trusted"}}}
