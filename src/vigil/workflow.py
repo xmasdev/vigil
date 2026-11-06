@@ -121,12 +121,19 @@ class TriageWorkflow:
         """Deterministic search terms: short names of the vulnerable API and of any library class
         on the path that the app instantiates. Model-chosen patterns can be useless (fully
         qualified internals never appear in app code), so 'no matches' alone is weak evidence."""
+        cg = self.a.cg
         names: list[str] = []
-        for q in [s.qualname for s in spec.symbols] + [n for n in path.nodes if n in self.a.cg.classes]:
-            for part in q.split(".")[1:]:
-                if part[:1].isalpha() and not part.startswith("__") and part not in names and len(part) > 3:
-                    names.append(part)
-        return [rf"\b{re.escape(n)}\b" for n in names[-6:]]
+        add = lambda n: names.append(n) if n not in names and len(n) > 3 and not n.startswith("__") else None
+        for q in [n for n in path.nodes if n in cg.classes]:          # library classes the app instantiates
+            add(q.rsplit(".", 1)[-1])
+        for q in [s.qualname for s in spec.symbols] + [path.target]:
+            for key in sorted(cg.registry_names.get(q, ())):          # name it is registered under (template filters)
+                add(key)
+            parts = q.split(".")
+            add(parts[-1])
+            if ".".join(parts[:-1]) in cg.classes:                      # method -> also its class name
+                add(parts[-2])
+        return [rf"\b{re.escape(n)}\b" for n in names[:8]]
 
     def _runtime(self, spec: VulnSpec, path: CallPath, ctx: str) -> Judgment:
         def valid_patterns(o: _Patterns) -> list[str]:

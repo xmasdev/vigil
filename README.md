@@ -70,11 +70,11 @@ flowchart LR
   `add_multi_constructor(...)`. If the vulnerable code is only reachable from an *address-taken* function
   (stored in a registry / passed as a callback) that nothing calls directly, vigil does not claim
   "unreachable"; it routes the alert to feature-usage triage instead. This took the no-LLM baseline from
-  83 % to 100 % recall.
+  83% to 100% recall.
 - **Workflow beats agent on a small model.** The free-form agent wandered into library internals;
   decomposing triage into narrow questions (trigger at the call site? data source? feature used?) with
-  deterministic aggregation is cheaper and more accurate (see results). Search-backed negative evidence
-  ("`\bsession\b`: no matches in app or templates") makes "not affected" claims auditable.
+  deterministic aggregation is cheaper and more accurate (see results). "Not affected" claims based on
+  absence need search evidence that includes deterministic anchors, not only model-chosen patterns.
 - **Confidence everywhere.** Edges are `exact` / `inferred` / `name`; a path is as strong as its weakest
   edge, and the report shows the share of calls statically resolved instead of pretending Python static
   analysis is exact.
@@ -86,7 +86,51 @@ Jinja2, Pillow, lxml, urllib3 and Flask — direct calls, helper indirection, in
 trusted inputs, template-only usage, framework-runtime vulnerabilities. Labels say whether the app is truly
 affected and why. Run with `vigil eval`.
 
-<!-- RESULTS -->
+### Results (Qwen3-4B Q5_K_M on an RTX 4050 6 GB, temperature 0)
+
+| config | recall (affected caught) | alert reduction | precision | accuracy | needs review | symbol hit | LLM calls | time |
+|---|---|---|---|---|---|---|---|---|
+| scanner (pip-audit-style) | 100% (12/12) | 0% (0/21) | 36% | 36% | 0% | – | 0 | – |
+| reach-diff (no LLM) | 100% (12/12) | 10% (2/21) | 39% | 42% | 82% | 79% | 0 | 42 s |
+| reach-llm (step A only) | 100% (12/12) | 10% (2/21) | 39% | 42% | 94% | 100% | 33 | 178 s |
+| **workflow** (A + structured triage) | **92% (11/12)** | **81% (17/21)** | **73%** | **85%** | 24% | 100% | 94 | 282 s |
+| agent (A + ReAct triage) | 83% (10/12) | 48% (10/21) | 48% | 61% | 30% | 100% | 225 | 537 s |
+
+**Retrieval** (advisory text → gold vulnerable symbol among the library's public API, n = 11 advisories):
+
+| method | recall@5 | recall@10 | recall@20 |
+|---|---|---|---|
+| BM25 | 64% | 82% | 82% |
+| dense (nomic-embed) | 91% | 100% | 100% |
+| hybrid (RRF) | 82% | 100% | 100% |
+
+What the numbers say:
+
+- **Static reachability alone barely helps** (10% alert reduction): to stay sound it must over-approximate
+  (framework runtime, dynamic dispatch, name-matched edges), so almost everything stays "maybe".
+  The LLM steps are what turn "maybe" into a decision, which is exactly where generative AI earns its place.
+- **LLM symbol extraction beats fix-diff symbols** (100% vs 79% gold-symbol hit): diffs touch internals,
+  tests and refactors; the advisory prose names the public entry points.
+- **Workflow > agent on a 4B model**: +9 pts recall, +33 pts alert reduction, 2.4× fewer LLM calls.
+  The agent tends to wander into library internals and declare framework CVEs exploitable.
+- **Hybrid retrieval did not beat dense** on this small set (BM25 drags recall@5 down); kept because BM25 is
+  robust for exact identifiers, but the measurement is reported as is.
+
+**How the benchmark drove the design** (workflow recall across iterations: 33% → 67% → 92%):
+
+1. 33%: traces showed the triage asking "is the feature used?" with model-chosen regexes like
+   `lxml\.html\.clean\.Cleaner\.__call__` that never appear in app code → "no matches" → "not affected".
+   Fix: module-level instance tracking (`http = PoolManager()` then `http.request(...)`) so these become
+   direct call paths, plus deterministic *anchor* searches that must also be empty before "not used" is allowed.
+2. Also found: the benchmark's `labels.json` was searchable by the model (label leakage). Hidden.
+3. 67%: lifecycle edges outranked real call paths; template filters are used as `|xmlattr`, not `do_xmlattr`.
+   Fix: a separate `runtime` confidence tier ranked below resolved calls, and capturing the registry key a
+   function is stored under (`FILTERS = {"xmlattr": do_xmlattr}`) as a search anchor.
+
+Remaining errors (workflow): the sandbox `|attr` CVE when **attackers author the templates** (the feature is
+in attacker input, not app code — a known blind spot of usage search); a bundled config file and a constant
+ImageMath expression judged attacker-controlled (false positives, the cheap error); two conservative
+*needs review*.
 
 Metrics: **recall** = truly-affected alerts that stay flagged (the costly error is missing one);
 **alert reduction** = not-affected alerts suppressed; *needs review* counts as flagged.

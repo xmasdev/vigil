@@ -1,0 +1,356 @@
+{
+  "config": "reach-llm",
+  "rows": [
+    {
+      "case": "flask_no_session",
+      "advisory": "CVE-2023-30861",
+      "gold_affected": false,
+      "gold_reason": "trigger_not_met",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "flask_permanent_session",
+      "advisory": "CVE-2023-30861",
+      "gold_affected": true,
+      "gold_reason": "exploitable",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "jinja_sandbox_user_template",
+      "advisory": "CVE-2019-10906",
+      "gold_affected": true,
+      "gold_reason": "exploitable",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "jinja_sandbox_user_template",
+      "advisory": "CVE-2024-56326",
+      "gold_affected": true,
+      "gold_reason": "exploitable",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "jinja_sandbox_user_template",
+      "advisory": "CVE-2025-27516",
+      "gold_affected": true,
+      "gold_reason": "exploitable",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "jinja_static_templates",
+      "advisory": "CVE-2019-10906",
+      "gold_affected": false,
+      "gold_reason": "input_trusted",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "jinja_static_templates",
+      "advisory": "CVE-2024-56326",
+      "gold_affected": false,
+      "gold_reason": "input_trusted",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "jinja_static_templates",
+      "advisory": "CVE-2025-27516",
+      "gold_affected": false,
+      "gold_reason": "input_trusted",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "jinja_static_templates",
+      "advisory": "CVE-2020-28493",
+      "gold_affected": false,
+      "gold_reason": "trigger_not_met",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "jinja_static_templates",
+      "advisory": "CVE-2024-22195",
+      "gold_affected": false,
+      "gold_reason": "trigger_not_met",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "jinja_static_templates",
+      "advisory": "CVE-2024-34064",
+      "gold_affected": false,
+      "gold_reason": "trigger_not_met",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "jinja_urlize_comments",
+      "advisory": "CVE-2020-28493",
+      "gold_affected": true,
+      "gold_reason": "exploitable",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "jinja_urlize_comments",
+      "advisory": "CVE-2019-10906",
+      "gold_affected": false,
+      "gold_reason": "input_trusted",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "jinja_urlize_comments",
+      "advisory": "CVE-2024-56326",
+      "gold_affected": false,
+      "gold_reason": "input_trusted",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "jinja_urlize_comments",
+      "advisory": "CVE-2025-27516",
+      "gold_affected": false,
+      "gold_reason": "input_trusted",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "jinja_xmlattr_keys",
+      "advisory": "CVE-2024-22195",
+      "gold_affected": true,
+      "gold_reason": "exploitable",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "jinja_xmlattr_keys",
+      "advisory": "CVE-2024-34064",
+      "gold_affected": true,
+      "gold_reason": "exploitable",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "jinja_xmlattr_keys",
+      "advisory": "CVE-2019-10906",
+      "gold_affected": false,
+      "gold_reason": "input_trusted",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "jinja_xmlattr_keys",
+      "advisory": "CVE-2024-56326",
+      "gold_affected": false,
+      "gold_reason": "input_trusted",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "jinja_xmlattr_keys",
+      "advisory": "CVE-2025-27516",
+      "gold_affected": false,
+      "gold_reason": "input_trusted",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "lxml_parse_feed",
+      "advisory": "CVE-2021-43818",
+      "gold_affected": false,
+      "gold_reason": "not_reachable",
+      "status": "not_reachable",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": false
+    },
+    {
+      "case": "lxml_sanitize_comments",
+      "advisory": "CVE-2021-43818",
+      "gold_affected": true,
+      "gold_reason": "exploitable",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "pillow_imagemath_constant",
+      "advisory": "CVE-2023-50447",
+      "gold_affected": false,
+      "gold_reason": "input_trusted",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "pillow_imagemath_user",
+      "advisory": "CVE-2023-50447",
+      "gold_affected": true,
+      "gold_reason": "exploitable",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "pillow_thumbnails",
+      "advisory": "CVE-2023-50447",
+      "gold_affected": false,
+      "gold_reason": "not_reachable",
+      "status": "not_reachable",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": false
+    },
+    {
+      "case": "urllib3_cookie_redirect",
+      "advisory": "CVE-2023-43804",
+      "gold_affected": true,
+      "gold_reason": "exploitable",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "urllib3_no_cookie",
+      "advisory": "CVE-2023-43804",
+      "gold_affected": false,
+      "gold_reason": "trigger_not_met",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "urllib3_no_redirect",
+      "advisory": "CVE-2023-43804",
+      "gold_affected": false,
+      "gold_reason": "trigger_not_met",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "yaml_bundled_config",
+      "advisory": "CVE-2020-14343",
+      "gold_affected": false,
+      "gold_reason": "input_trusted",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "yaml_http_full_load",
+      "advisory": "CVE-2020-14343",
+      "gold_affected": true,
+      "gold_reason": "exploitable",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "yaml_safe_load_only",
+      "advisory": "CVE-2020-14343",
+      "gold_affected": false,
+      "gold_reason": "trigger_not_met",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "yaml_safe_loader",
+      "advisory": "CVE-2020-14343",
+      "gold_affected": false,
+      "gold_reason": "trigger_not_met",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    },
+    {
+      "case": "yaml_upload_class",
+      "advisory": "CVE-2020-14343",
+      "gold_affected": true,
+      "gold_reason": "exploitable",
+      "status": "needs_review",
+      "symbol_hit": true,
+      "evidence_verified": null,
+      "pred_affected": true
+    }
+  ],
+  "metrics": {
+    "n": 33,
+    "tp": 12,
+    "fn": 0,
+    "fp": 19,
+    "tn": 2,
+    "recall": 1.0,
+    "precision": 0.387,
+    "alert_reduction": 0.095,
+    "accuracy": 0.424,
+    "needs_review_rate": 0.939,
+    "symbol_hit_rate": 1.0,
+    "reason_match": 1.0
+  },
+  "cost": {
+    "llm_calls": 33,
+    "prompt_tokens": 41489,
+    "completion_tokens": 6307,
+    "seconds": 177.5
+  },
+  "model": "Qwen3-4B-Q5_K_M.gguf"
+}

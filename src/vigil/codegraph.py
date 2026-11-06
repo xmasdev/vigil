@@ -21,7 +21,7 @@ from pathlib import Path
 import networkx as nx
 
 PROJECT = "<project>"
-CONF_RANK = {"exact": 0, "inferred": 1, "name": 2}
+CONF_RANK = {"exact": 0, "inferred": 1, "runtime": 2, "name": 3}  # runtime = framework may invoke it (lifecycle)
 HTTP_DECORATORS = {"route", "get", "post", "put", "delete", "patch", "websocket", "api_route", "head", "options"}
 CLI_DECORATORS = {"command", "callback", "group"}
 TASK_DECORATORS = {"task", "shared_task", "job"}
@@ -122,6 +122,7 @@ class CodeGraph:
         self.stats = {"calls": 0, "exact": 0, "inferred": 0, "name": 0, "unresolved": 0, "parse_errors": 0}
         self._methods_by_name: dict[str, list[str]] = {}
         self.address_taken: set[str] = set()  # functions stored as values (registries, callbacks)
+        self.registry_names: dict[str, set[str]] = {}  # fn -> keys it is registered under ({'xmlattr': do_xmlattr})
 
     # ------------------------------------------------------------------ indexing
     def add_tree(self, root: Path, package: str, top_level: list[str] | None = None) -> None:
@@ -187,7 +188,7 @@ class CodeGraph:
                     if not name.startswith("_") or (name.startswith("__") and name.endswith("__")):
                         if not self.g.has_edge(cq, mq):
                             n = self.nodes[cq]
-                            self._edge(CallSite(cq, mq, f"<runtime> {cq.rsplit('.', 1)[-1]}.{name}", n.file or "", n.lineno, "inferred"))
+                            self._edge(CallSite(cq, mq, f"<runtime> {cq.rsplit('.', 1)[-1]}.{name}", n.file or "", n.lineno, "runtime"))
                 mod = self.modules.get(c.module)
                 stack += [b for base in c.bases if mod and (b := self._resolve_in_module(mod, base))]
 
@@ -453,11 +454,14 @@ class CodeGraph:
                     self._handle_call(m, n, qn, cls_qn, resolve_expr, seg, imports)
                 if isinstance(n, (ast.Dict, ast.List, ast.Tuple, ast.Set, ast.Assign)):
                     vals = n.values if isinstance(n, ast.Dict) else [n.value] if isinstance(n, ast.Assign) else n.elts
-                    for v in vals:
+                    keys = n.keys if isinstance(n, ast.Dict) else [None] * len(vals)
+                    for k, v in zip(keys, vals):
                         if v is not None and (d := _dotted(v)):
                             r, _, inst = resolve_expr(d)
                             if r and not inst and self.nodes.get(r) and self.nodes[r].kind in ("function", "method"):
                                 self.address_taken.add(r)
+                                if isinstance(k, ast.Constant) and isinstance(k.value, str):
+                                    self.registry_names.setdefault(r, set()).add(k.value)
 
             # recurse into nested scopes (module-level defs are named mod.f, nested ones outer.f)
             prefix = m.name if isinstance(scope_node, ast.Module) else qn

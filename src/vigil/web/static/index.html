@@ -177,6 +177,7 @@ function drawGraph(p) {
       { selector: "edge", style: { width: 2, "line-color": v("--gray"), "target-arrow-color": v("--gray"), "target-arrow-shape": "triangle",
           "curve-style": "bezier", label: "data(label)", "font-size": 9, color: v("--muted"), "text-background-color": v("--code"), "text-background-opacity": 1 } },
       { selector: "edge[conf='inferred']", style: { "line-style": "dashed" } },
+      { selector: "edge[conf='runtime']", style: { "line-style": "dashed", "line-dash-pattern": [2, 4], "line-color": v("--blue"), "target-arrow-color": v("--blue") } },
       { selector: "edge[conf='name']", style: { "line-style": "dotted", "line-color": v("--amber"), "target-arrow-color": v("--amber") } },
     ] });
 }

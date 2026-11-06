@@ -133,7 +133,7 @@ def test_framework_lifecycle_edges(lib_and_app):
     cg = lib_and_app
     # the app instantiates lib.framework.App, so its public/dunder methods are runtime-reachable
     assert cg.g.has_edge("lib.framework.App", "lib.framework.App.__call__")
-    assert cg.g.edges["lib.framework.App", "lib.framework.App.dispatch"]["confidence"] == "inferred"
+    assert cg.g.edges["lib.framework.App", "lib.framework.App.dispatch"]["confidence"] == "runtime"
 
 
 def test_diff_maps_hunks_to_functions_in_vulnerable_version(lib_and_app):
