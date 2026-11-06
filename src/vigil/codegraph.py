@@ -43,6 +43,7 @@ class Node:
     entry: str | None = None  # http | cli | task | main | import
     signature: str = ""
     doc: str = ""
+    params: list[str] = field(default_factory=list)  # "x", "x=" (default), "*args", "**kw", "kw:x", "kw:x="
 
 
 @dataclass
@@ -67,6 +68,7 @@ class _Module:
     source: str
     bindings: dict[str, str] = field(default_factory=dict)  # local name -> dotted target
     star_imports: list[str] = field(default_factory=list)
+    instances: dict[str, str] = field(default_factory=dict)  # module global -> dotted constructor (`http = PoolManager()`)
 
 
 @dataclass
@@ -75,6 +77,18 @@ class _Class:
     module: str
     bases: list[str]  # dotted (unresolved)
     methods: dict[str, str] = field(default_factory=dict)
+
+
+def _params(a: ast.arguments) -> list[str]:
+    pos = a.posonlyargs + a.args
+    n_def = len(a.defaults)
+    out = [p.arg + ("=" if i >= len(pos) - n_def else "") for i, p in enumerate(pos)]
+    if a.vararg:
+        out.append("*" + a.vararg.arg)
+    out += ["kw:" + k.arg + ("=" if d is not None else "") for k, d in zip(a.kwonlyargs, a.kw_defaults)]
+    if a.kwarg:
+        out.append("**" + a.kwarg.arg)
+    return out
 
 
 def _dotted(expr: ast.AST) -> list[str] | None:
@@ -220,7 +234,8 @@ class CodeGraph:
                     kind = "method" if cls else "function"
                     self._add_node(Node(qn, kind, m.package, file, stmt.lineno, stmt.end_lineno or stmt.lineno,
                                         entry=self._entry_kind(m, stmt, cls),
-                                        signature=f"({ast.unparse(stmt.args)})", doc=(ast.get_docstring(stmt) or "")[:400]))
+                                        signature=f"({ast.unparse(stmt.args)})", doc=(ast.get_docstring(stmt) or "")[:400],
+                                        params=_params(stmt.args)))
                     if cls:
                         cls.methods[stmt.name] = qn
                         self._methods_by_name.setdefault(stmt.name, []).append(qn)
@@ -239,6 +254,10 @@ class CodeGraph:
                     visit_scope(stmt.body, qn, c, False)
                 elif module_scope and isinstance(stmt, (ast.Import, ast.ImportFrom)):
                     m.bindings.update(self._import_bindings(m, stmt))
+                elif module_scope and isinstance(stmt, ast.Assign) and len(stmt.targets) == 1 \
+                        and isinstance(stmt.targets[0], ast.Name) and isinstance(stmt.value, ast.Call) \
+                        and (d := _dotted(stmt.value.func)):
+                    m.instances[stmt.targets[0].id] = ".".join(d)
                 elif module_scope and isinstance(stmt, ast.Assign) and len(stmt.targets) == 1 \
                         and isinstance(stmt.targets[0], ast.Name) and (d := _dotted(stmt.value)):
                     # alias:  load = _load   /   Loader = loader.FullLoader
@@ -390,6 +409,14 @@ class CodeGraph:
                         meth = self.lookup_method(var_types[head], rest[0])
                         return (meth, "inferred", False) if meth else (None, "", False)
                     return (var_types[head], "inferred", True) if not rest else (None, "", False)
+                if head in m.instances and head not in var_refs and head not in local_defs and head not in imports:
+                    cq = self._resolve_in_module(m, m.instances[head])
+                    if cq in self.classes:
+                        if not rest:
+                            return cq, "inferred", True
+                        if len(rest) == 1 and (meth := self.lookup_method(cq, rest[0])):
+                            return meth, "inferred", False
+                        return None, "", False
                 if head in var_refs:
                     r = self.resolve(".".join([var_refs[head], *rest]))
                     return (r, "inferred", False) if r else (None, "", False)

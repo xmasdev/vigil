@@ -27,6 +27,7 @@ from .llm import LLM, StructuredOutputError
 from .reach import Path as CallPath
 from .symbols import VulnSpec
 
+HIDDEN_FILES = {"labels.json"}  # benchmark ground truth must never reach the model
 TEXT_SUFFIXES = {".html", ".htm", ".j2", ".jinja", ".jinja2", ".txt", ".cfg", ".ini", ".toml", ".yaml", ".yml", ".env", ".json"}
 Verdict = Literal["exploitable", "trigger_not_met", "input_trusted", "needs_review"]
 
@@ -135,7 +136,7 @@ class TriageAgent:
             self._files = {self._rel(str(m.file)): m.source.splitlines()
                            for m in self.cg.modules.values() if m.package == PROJECT}
             for f in sorted(self.root.rglob("*")):
-                if f.suffix in TEXT_SUFFIXES and f.is_file() and not any(
+                if f.suffix in TEXT_SUFFIXES and f.is_file() and f.name not in HIDDEN_FILES and not any(
                         part.startswith(".") or part in ("venv", "node_modules") for part in f.relative_to(self.root).parts):
                     self._files[self._rel(str(f))] = f.read_text(errors="replace").splitlines()
         return self._files

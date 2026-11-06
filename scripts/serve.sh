@@ -7,9 +7,10 @@ LLAMA="${LLAMA_CPP:-$HOME/llama.cpp/build/bin}"
 MODELS="${MODELS_DIR:-$HOME/models/llama.cpp}"
 CHAT_MODEL="${VIGIL_CHAT_MODEL:-$MODELS/Qwen3-4B-Q5_K_M.gguf}"
 EMBED_MODEL="${VIGIL_EMBED_MODEL:-$MODELS/nomic-embed-text-v1.5.Q8_0.gguf}"
+# Only one chat model fits in 6 GB VRAM: stop the running servers before switching models.
 mkdir -p .vigil/logs
 
-"$LLAMA/llama-server" -m "$CHAT_MODEL" --port 8080 -ngl 99 -c 16384 -fa on --jinja -np 1 \
+"$LLAMA/llama-server" -m "$CHAT_MODEL" --port 8080 -ngl 99 -c "${VIGIL_CTX:-16384}" -fa on --jinja -np 1 \
   > .vigil/logs/chat.log 2>&1 &
 echo "chat  pid $! ($CHAT_MODEL)"
 "$LLAMA/llama-server" -m "$EMBED_MODEL" --port 8081 -ngl 0 --embedding --pooling mean -c 2048 -ub 2048 \

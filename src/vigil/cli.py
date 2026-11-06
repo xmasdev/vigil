@@ -60,6 +60,30 @@ def evaluate(cases: Path = typer.Option(Path("benchmarks/cases"), exists=True, f
 
 
 @app.command()
+def upgrade(package: str = typer.Argument(..., help="Dependency to upgrade"),
+            project: Path = typer.Argument(Path("."), exists=True, file_okay=False),
+            to: str = typer.Option(None, "--to", help="Target version (default: highest version fixing its advisories)"),
+            no_llm: bool = typer.Option(False, "--no-llm"),
+            run_tests: bool = typer.Option(False, "--run-tests", help="Install upgraded deps in a temp venv and run pytest")):
+    """Will upgrading this dependency break my code? API diff on the calls you make + changelog review."""
+    from .llm import LLM
+    from .upgrade import analyse
+    r = analyse(project, package, to, llm=None if no_llm else LLM(), run_tests=run_tests,
+                log=lambda m: console.print(f"[dim]{m}[/dim]"))
+    color = {"low": "green", "medium": "yellow", "high": "red"}[r.risk]
+    console.print(f"\n[bold]{r.package} {r.from_version} → {r.to_version}: [{color}]{r.risk} risk[/][/]")
+    console.print(f"APIs you use: {', '.join(r.usages) or 'none'}")
+    for i in r.api_issues:
+        console.print(f"  [red]•[/] {i.symbol}: {i.kind} — {i.detail}  ({', '.join(i.sites)})")
+    for c in r.changelog_findings:
+        console.print(f"  [yellow]•[/] {c['api']}: {c['change']}  ({', '.join(c['call_sites'])})\n    fix: {c['fix']}")
+    if r.summary:
+        console.print(f"[italic]{r.summary}[/italic]")
+    if r.tests:
+        console.print(f"tests: {r.tests}")
+
+
+@app.command()
 def serve(project: Path = typer.Argument(Path("."), exists=True, file_okay=False),
           port: int = typer.Option(8765), results: Path = typer.Option(Path("benchmarks/results"))):
     """Open the web UI for a project's scans (and the benchmark results)."""

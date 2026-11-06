@@ -74,7 +74,7 @@ class TriageWorkflow:
         ctx = self.a.initial_context(spec, path, summary)
         runtime = any(s.raw.startswith("<runtime>") for s in path.sites)
         try:
-            return self._runtime(spec, ctx) if runtime else self._direct(spec, path, ctx)
+            return self._runtime(spec, path, ctx) if runtime else self._direct(spec, path, ctx)
         except StructuredOutputError as e:
             return Judgment(verdict="needs_review", attacker_controlled="", reasoning=f"workflow failed: {e.errors[:2]}",
                             evidence=[], confidence="low")
@@ -117,7 +117,18 @@ class TriageWorkflow:
                         confidence="high" if verdict != "needs_review" else "low", steps=steps, evidence_verified=True)
 
     # ---------------------------------------------------------------- framework runtime path
-    def _runtime(self, spec: VulnSpec, ctx: str) -> Judgment:
+    def _anchors(self, spec: VulnSpec, path: CallPath) -> list[str]:
+        """Deterministic search terms: short names of the vulnerable API and of any library class
+        on the path that the app instantiates. Model-chosen patterns can be useless (fully
+        qualified internals never appear in app code), so 'no matches' alone is weak evidence."""
+        names: list[str] = []
+        for q in [s.qualname for s in spec.symbols] + [n for n in path.nodes if n in self.a.cg.classes]:
+            for part in q.split(".")[1:]:
+                if part[:1].isalpha() and not part.startswith("__") and part not in names and len(part) > 3:
+                    names.append(part)
+        return [rf"\b{re.escape(n)}\b" for n in names[-6:]]
+
+    def _runtime(self, spec: VulnSpec, path: CallPath, ctx: str) -> Judgment:
         def valid_patterns(o: _Patterns) -> list[str]:
             errs = []
             o.patterns = [_clean_pattern(p) for p in o.patterns]
@@ -135,7 +146,9 @@ class TriageWorkflow:
             f"application code (match the feature itself, not one specific value; e.g. for a session bug: \\bsession\\b). "
             f"Plain regex text, no quotes.",
             _Patterns, f"wf-patterns:{spec.advisory}", validate=valid_patterns)
-        results = {p: self.a.tool_search_code(p) for p in pats.patterns}
+        anchors = self._anchors(spec, path)
+        results = {p: self.a.tool_search_code(p) for p in dict.fromkeys(pats.patterns + anchors)}
+        anchor_hits = [p for p in anchors if results[p] != "No matches."]
         self.llm.tracer.emit("tool", name="search_code(batch)", args=pats.patterns, result=str(results)[:2000])
         shown = "\n".join(f"search {p!r}:\n{r}" for p, r in results.items())
         f: _FeatureUse = self._ask(
@@ -160,9 +173,11 @@ class TriageWorkflow:
             verdict = "trigger_not_met"
         else:
             verdict = "needs_review"
-        # claims of non-use must be backed by searches that really returned nothing
-        if verdict == "trigger_not_met" and f.feature_used == "no" and not negative:
+        # 'not used' must be backed by searches that really returned nothing, including the
+        # deterministic anchors (the vulnerable API's own names)
+        if verdict == "trigger_not_met" and f.feature_used == "no" and (anchor_hits or not negative):
             verdict = "needs_review"
-            reasoning += " [downgraded: searches found matches that contradict 'feature not used']"
+            reasoning += (f" [downgraded: the app references {', '.join(anchor_hits)}, contradicting 'feature not used']"
+                          if anchor_hits else " [downgraded: no negative search evidence]")
         return Judgment(verdict=verdict, attacker_controlled="framework runtime", reasoning=reasoning, evidence=ev,
                         confidence="medium", steps=3, evidence_verified=True)

@@ -1,0 +1,12 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync
+      - run: uv run pytest -q
+      # LLM-free baseline on the labeled benchmark (needs network for OSV/PyPI)
+      - run: uv run vigil eval -c scanner -c reach-diff --no-retrieval

@@ -167,3 +167,32 @@ def test_parse_uv_compile_output():
     assert res.packages["flask"].direct and not res.packages["jinja2"].direct
     assert res.chain_to("markupsafe") in (["flask", "jinja2", "markupsafe"], ["flask", "werkzeug", "markupsafe"])
     assert res.packages_between({"markupsafe"}) == {"flask", "jinja2", "werkzeug", "markupsafe"}
+
+
+def test_module_level_instance_method_calls_resolve(tmp_path):
+    root = write(tmp_path, {
+        "lib/__init__.py": "from .pool import PoolManager\n",
+        "lib/pool.py": """
+            class PoolManager:
+                def request(self, method, url, **kw):
+                    return self.urlopen(method, url, **kw)
+
+                def urlopen(self, method, url, redirect=True, **kw):
+                    return url
+        """,
+        "app.py": """
+            import lib
+
+            http = lib.PoolManager()
+
+            def fetch(url):
+                return http.request("GET", url, headers={"Cookie": "x"})
+        """,
+    })
+    cg = CodeGraph()
+    cg.add_tree(root, PROJECT, ["app"])
+    cg.add_tree(root, "lib", ["lib"])
+    cg.build()
+    assert cg.g.has_edge("app.fetch", "lib.pool.PoolManager.request")
+    site = cg.g.edges["app.fetch", "lib.pool.PoolManager.request"]["sites"][0]
+    assert site.keywords == {"headers": '{"Cookie": "x"}'}

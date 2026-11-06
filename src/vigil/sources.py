@@ -84,3 +84,33 @@ def fetch(package: str, version: str) -> SourceTree:
         marker.write_text(str(root))
     root = Path(marker.read_text())
     return SourceTree(package, version, root, _top_level_in(root))
+
+
+_CHANGELOG_NAMES = ("CHANGES", "CHANGELOG", "HISTORY", "NEWS", "RELEASE")
+
+
+def fetch_changelog(package: str, version: str) -> str | None:
+    """Changelog text from the version's sdist (wheels usually omit it)."""
+    dest = CACHE_DIR / "sdist" / f"{package}-{version}"
+    if not dest.exists():
+        if OFFLINE:
+            return None
+        meta = cached_json("pypi", f"{package}=={version}",
+                           lambda: httpx.get(f"https://pypi.org/pypi/{package}/{version}/json", timeout=30).raise_for_status().json())
+        sdist = next((f for f in meta["urls"] if f["packagetype"] == "sdist"), None)
+        if sdist is None:
+            return None
+        blob = httpx.get(sdist["url"], timeout=120, follow_redirects=True).raise_for_status().content
+        dest.mkdir(parents=True, exist_ok=True)
+        if sdist["filename"].endswith(".zip"):
+            with zipfile.ZipFile(io.BytesIO(blob)) as z:
+                z.extractall(dest)
+        else:
+            with tarfile.open(fileobj=io.BytesIO(blob)) as t:
+                t.extractall(dest, filter="data")
+    candidates = [p for p in dest.rglob("*") if p.is_file() and p.stem.upper().startswith(_CHANGELOG_NAMES)
+                  and len(p.relative_to(dest).parts) <= 3]
+    if not candidates:
+        return None
+    best = max(candidates, key=lambda p: p.stat().st_size)
+    return best.read_text(errors="replace")
